@@ -1,9 +1,81 @@
-import streamlit as st
+import tkinter as tk
+from tkinter import messagebox
 import chess
-import chess.svg
-from PIL import Image
-import io
-from wand.image import Image as WandImage
+
+class ChessApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Catur dengan AI")
+        
+        self.board = chess.Board()
+        self.ai = ChessAI(depth=3)
+        
+        self.canvas = tk.Canvas(root, width=480, height=480)
+        self.canvas.pack()
+        
+        self.square_size = 60
+        self.selected_square = None
+        
+        self.canvas.bind("<Button-1>", self.on_square_click)
+        
+        self.draw_board()
+        self.update_board()
+
+    def draw_board(self):
+        for row in range(8):
+            for col in range(8):
+                color = 'white' if (row + col) % 2 == 0 else 'gray'
+                x1 = col * self.square_size
+                y1 = row * self.square_size
+                x2 = x1 + self.square_size
+                y2 = y1 + self.square_size
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
+
+    def update_board(self):
+        self.canvas.delete("piece")
+        for square in chess.SQUARES:
+            piece = self.board.piece_at(square)
+            if piece:
+                x = (square % 8) * self.square_size + self.square_size // 2
+                y = (7 - square // 8) * self.square_size + self.square_size // 2
+                self.canvas.create_text(x, y, text=piece.symbol(), tags="piece", font=("Helvetica", 32))
+        self.check_game_status()
+
+    def check_game_status(self):
+        if self.board.is_checkmate():
+            messagebox.showinfo("Game Over", "Checkmate! You lost.")
+        elif self.board.is_stalemate():
+            messagebox.showinfo("Game Over", "Stalemate! It's a draw.")
+        elif self.board.is_insufficient_material():
+            messagebox.showinfo("Game Over", "Draw due to insufficient material.")
+        elif self.board.is_seventyfive_moves():
+            messagebox.showinfo("Game Over", "Draw due to the seventy-five-move rule.")
+        elif self.board.is_fivefold_repetition():
+            messagebox.showinfo("Game Over", "Draw due to fivefold repetition.")
+
+    def on_square_click(self, event):
+        col = event.x // self.square_size
+        row = 7 - event.y // self.square_size
+        square = chess.square(col, row)
+        
+        if self.selected_square is None:
+            if self.board.piece_at(square) and self.board.piece_at(square).color == chess.WHITE:
+                self.selected_square = square
+        else:
+            move = chess.Move(self.selected_square, square)
+            if move in self.board.legal_moves:
+                self.board.push(move)
+                self.selected_square = None
+                self.update_board()
+                self.root.after(100, self.ai_move)
+            else:
+                self.selected_square = None
+
+    def ai_move(self):
+        if not self.board.is_game_over():
+            move = self.ai.select_move(self.board)
+            self.board.push(move)
+            self.update_board()
 
 class ChessAI:
     def __init__(self, depth):
@@ -68,50 +140,7 @@ class ChessAI:
 
         return best_move
 
-class ChessApp:
-    def __init__(self):
-        self.board = chess.Board()
-        self.ai = ChessAI(depth=3)  # Initialize your AI
-
-    def render_board(self):
-        board_svg = chess.svg.board(self.board)
-        return board_svg
-
-    def svg_to_png(self, svg):
-        with WandImage(blob=svg.encode('utf-8'), format='svg') as image:
-            image.format = 'png'
-            return image.make_blob()
-
-    def make_ai_move(self):
-        if not self.board.is_game_over():
-            move = self.ai.select_move(self.board)
-            self.board.push(move)
-
-    def main(self):
-        st.title("Chess with AI")
-        st.write("Play chess against an AI")
-
-        # Render board as SVG and convert to PNG
-        board_svg = self.render_board()
-        board_png = self.svg_to_png(board_svg)
-        st.image(board_png, use_column_width=True)
-
-        user_move = st.text_input("Your move (e.g., e2e4):")
-
-        if st.button("Make move"):
-            try:
-                move = chess.Move.from_uci(user_move)
-                if move in self.board.legal_moves:
-                    self.board.push(move)
-                    self.make_ai_move()
-                    board_svg = self.render_board()  # Update board after move
-                    board_png = self.svg_to_png(board_svg)
-                    st.image(board_png, use_column_width=True)
-                else:
-                    st.write("Invalid move! Please try again.")
-            except ValueError:
-                st.write("Invalid move format! Please enter in UCI format (e.g., e2e4).")
-
 if __name__ == "__main__":
-    chess_app = ChessApp()
-    chess_app.main()
+    root = tk.Tk()
+    app = ChessApp(root)
+    root.mainloop()
