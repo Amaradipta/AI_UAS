@@ -1,4 +1,5 @@
+streamlit
 chess
 cairosvg
 Pillow
-streamlit
+Wand
