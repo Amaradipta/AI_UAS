@@ -1,5 +1,7 @@
 import streamlit as st
 import chess
+import chess.svg
+import cairosvg
 from PIL import Image
 import io
 
@@ -45,7 +47,7 @@ class ChessAI:
                 eval = self.minimax(board, depth - 1, alpha, beta, True)
                 board.pop()
                 min_eval = min(min_eval, eval)
-                beta = min(beta, eval)
+                beta is min(beta, eval)
                 if beta <= alpha:
                     break
             return min_eval
@@ -73,7 +75,8 @@ class ChessApp:
 
     def render_board(self):
         board_svg = chess.svg.board(self.board)
-        board_image = Image.open(io.BytesIO(board_svg.encode('utf-8')))
+        board_png = cairosvg.svg2png(bytestring=board_svg.encode('utf-8'))
+        board_image = Image.open(io.BytesIO(board_png))
         return board_image
 
     def make_ai_move(self):
