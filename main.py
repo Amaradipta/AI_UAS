@@ -71,11 +71,14 @@ board = chess.Board()
 ai = ChessAI(depth=3)
 
 def render_board(board):
+    # Generate SVG representation of the chess board
     svg_board = chess.svg.board(board)
 
-    svg_bytes = svg_board.encode('utf-8')
+    # Convert SVG to PIL image (PNG format)
+    svg_bytes = svg_board.encode('utf-8')  # Convert SVG string to bytes
     drawing = svg2rlg(io.BytesIO(svg_bytes))
-    img = Image.new("RGB", drawing.width, drawing.height)
+    width, height = drawing.width, drawing.height
+    img = Image.new("RGB", (width, height))
     renderPM.draw(drawing, img)
 
     return img
