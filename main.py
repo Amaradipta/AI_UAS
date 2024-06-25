@@ -73,9 +73,10 @@ ai = ChessAI(depth=3)
 def render_board(board):
     svg_board = chess.svg.board(board)
 
-    drawing = svg2rlg(io.BytesIO(svg_board.encode('utf-8')))
-    img = Image.new("RGB", drawing.getBounds()[2:])
-    renderPM.drawToFile(drawing, img)
+    svg_bytes = svg_board.encode('utf-8')
+    drawing = svg2rlg(io.BytesIO(svg_bytes))
+    img = Image.new("RGB", drawing.width, drawing.height)
+    renderPM.draw(drawing, img)
 
     return img
 
