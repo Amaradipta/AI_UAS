@@ -1,9 +1,8 @@
 import streamlit as st
 import chess
-import chess.svg
-import cairosvg
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPM
 from PIL import Image
-import io
 
 class ChessAI:
     def __init__(self, depth):
@@ -73,8 +72,12 @@ ai = ChessAI(depth=3)
 
 def render_board(board):
     svg_board = chess.svg.board(board)
-    png_board = cairosvg.svg2png(bytestring=svg_board)
-    return Image.open(io.BytesIO(png_board))
+
+    drawing = svg2rlg(io.BytesIO(svg_board.encode('utf-8')))
+    img = Image.new("RGB", drawing.getBounds()[2:])
+    renderPM.drawToFile(drawing, img)
+
+    return img
 
 st.title("Chess with AI")
 st.write("Play chess against an AI")
