@@ -1,7 +1,6 @@
 import streamlit as st
 import chess
 import chess.svg
-import cairosvg
 from PIL import Image
 import io
 
@@ -47,7 +46,7 @@ class ChessAI:
                 eval = self.minimax(board, depth - 1, alpha, beta, True)
                 board.pop()
                 min_eval = min(min_eval, eval)
-                beta is min(beta, eval)
+                beta = min(beta, eval)
                 if beta <= alpha:
                     break
             return min_eval
@@ -74,10 +73,7 @@ class ChessApp:
         self.ai = ChessAI(depth=3)  # Initialize your AI
 
     def render_board(self):
-        board_svg = chess.svg.board(self.board)
-        board_png = cairosvg.svg2png(bytestring=board_svg.encode('utf-8'))
-        board_image = Image.open(io.BytesIO(board_png))
-        return board_image
+        return chess.svg.board(self.board)
 
     def make_ai_move(self):
         if not self.board.is_game_over():
@@ -88,7 +84,9 @@ class ChessApp:
         st.title("Chess with AI")
         st.write("Play chess against an AI")
 
-        st.image(self.render_board(), use_column_width=True)
+        # Render board as SVG
+        board_svg = self.render_board()
+        st.image(board_svg, use_column_width=True, format='svg')
 
         user_move = st.text_input("Your move (e.g., e2e4):")
 
@@ -98,7 +96,8 @@ class ChessApp:
                 if move in self.board.legal_moves:
                     self.board.push(move)
                     self.make_ai_move()
-                    st.image(self.render_board(), use_column_width=True)
+                    board_svg = self.render_board()  # Update board after move
+                    st.image(board_svg, use_column_width=True, format='svg')
                 else:
                     st.write("Invalid move! Please try again.")
             except ValueError:
