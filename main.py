@@ -1,47 +1,106 @@
 import streamlit as st
 import chess
-import ChessAI
+from PIL import Image
+import io
 
-class StreamlitChessApp:
+class ChessAI:
+    def __init__(self, depth):
+        self.depth = depth
+
+    def evaluate_board(self, board):
+        evaluation = 0
+        for (piece, value) in [
+            (chess.PAWN, 1),
+            (chess.KNIGHT, 3),
+            (chess.BISHOP, 3),
+            (chess.ROOK, 5),
+            (chess.QUEEN, 9),
+            (chess.KING, 0)
+        ]:
+            evaluation += len(board.pieces(piece, chess.WHITE)) * value
+            evaluation -= len(board.pieces(piece, chess.BLACK)) * value
+        return evaluation
+
+    def minimax(self, board, depth, alpha, beta, is_maximizing):
+        if depth == 0 or board.is_game_over():
+            return self.evaluate_board(board)
+
+        legal_moves = list(board.legal_moves)
+
+        if is_maximizing:
+            max_eval = -float('inf')
+            for move in legal_moves:
+                board.push(move)
+                eval = self.minimax(board, depth - 1, alpha, beta, False)
+                board.pop()
+                max_eval = max(max_eval, eval)
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break
+            return max_eval
+        else:
+            min_eval = float('inf')
+            for move in legal_moves:
+                board.push(move)
+                eval = self.minimax(board, depth - 1, alpha, beta, True)
+                board.pop()
+                min_eval = min(min_eval, eval)
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break
+            return min_eval
+
+    def select_move(self, board):
+        best_move = None
+        best_value = -float('inf')
+        alpha = -float('inf')
+        beta = float('inf')
+
+        for move in board.legal_moves:
+            board.push(move)
+            board_value = self.minimax(board, self.depth - 1, alpha, beta, False)
+            board.pop()
+            if board_value > best_value:
+                best_value = board_value
+                best_move = move
+
+        return best_move
+
+class ChessApp:
     def __init__(self):
         self.board = chess.Board()
-        self.ai = ChessAI(depth=3)
+        self.ai = ChessAI(depth=3)  # Initialize your AI
 
     def render_board(self):
-        st.write("### Chess Board")
-        board_svg = chess.svg.board(self.board, size=400)
-        st.image(board_svg, use_column_width=True, format='svg')
+        board_svg = chess.svg.board(self.board)
+        board_image = Image.open(io.BytesIO(board_svg.encode('utf-8')))
+        return board_image
 
-    def run(self):
+    def make_ai_move(self):
+        if not self.board.is_game_over():
+            move = self.ai.select_move(self.board)
+            self.board.push(move)
+
+    def main(self):
         st.title("Chess with AI")
-        self.render_board()
-        
+        st.write("Play chess against an AI")
+
+        st.image(self.render_board(), use_column_width=True)
+
         user_move = st.text_input("Your move (e.g., e2e4):")
+
         if st.button("Make move"):
             try:
-                move = chess.Move.from_uci(user_move.strip())
+                move = chess.Move.from_uci(user_move)
                 if move in self.board.legal_moves:
                     self.board.push(move)
-                    if not self.board.is_game_over():
-                        ai_move = self.ai.select_move(self.board)
-                        self.board.push(ai_move)
-                    self.render_board()
+                    self.make_ai_move()
+                    st.image(self.render_board(), use_column_width=True)
                 else:
-                    st.warning("Invalid move! Please try again.")
+                    st.write("Invalid move! Please try again.")
             except ValueError:
-                st.warning("Invalid move format! Please enter in UCI format (e.g., e2e4).")
-
-        if self.board.is_checkmate():
-            st.warning("Checkmate! Game over.")
-        elif self.board.is_stalemate():
-            st.warning("Stalemate! Game over.")
-        elif self.board.is_insufficient_material():
-            st.warning("Draw due to insufficient material.")
-        elif self.board.is_seventyfive_moves():
-            st.warning("Draw due to the seventy-five-move rule.")
-        elif self.board.is_fivefold_repetition():
-            st.warning("Draw due to fivefold repetition.")
+                st.write("Invalid move format! Please enter in UCI format (e.g., e2e4).")
 
 if __name__ == "__main__":
-    app = StreamlitChessApp()
-    app.run()
+    chess_app = ChessApp()
+    chess_app.main()
