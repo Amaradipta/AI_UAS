@@ -3,6 +3,7 @@ import chess
 import chess.svg
 from PIL import Image
 import io
+from wand.image import Image as WandImage
 
 class ChessAI:
     def __init__(self, depth):
@@ -73,7 +74,13 @@ class ChessApp:
         self.ai = ChessAI(depth=3)  # Initialize your AI
 
     def render_board(self):
-        return chess.svg.board(self.board)
+        board_svg = chess.svg.board(self.board)
+        return board_svg
+
+    def svg_to_png(self, svg):
+        with WandImage(blob=svg.encode('utf-8'), format='svg') as image:
+            image.format = 'png'
+            return image.make_blob()
 
     def make_ai_move(self):
         if not self.board.is_game_over():
@@ -84,9 +91,10 @@ class ChessApp:
         st.title("Chess with AI")
         st.write("Play chess against an AI")
 
-        # Render board as SVG
+        # Render board as SVG and convert to PNG
         board_svg = self.render_board()
-        st.image(board_svg, use_column_width=True, format='svg')
+        board_png = self.svg_to_png(board_svg)
+        st.image(board_png, use_column_width=True)
 
         user_move = st.text_input("Your move (e.g., e2e4):")
 
@@ -97,7 +105,8 @@ class ChessApp:
                     self.board.push(move)
                     self.make_ai_move()
                     board_svg = self.render_board()  # Update board after move
-                    st.image(board_svg, use_column_width=True, format='svg')
+                    board_png = self.svg_to_png(board_svg)
+                    st.image(board_png, use_column_width=True)
                 else:
                     st.write("Invalid move! Please try again.")
             except ValueError:
