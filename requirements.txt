@@ -1,5 +1,5 @@
 streamlit
-cairosvg==2.5.2
-cairocffi==1.2.0
+svglib
+reportlab
 Pillow
 python-chess
